@@ -239,3 +239,199 @@ def create_results_heatmap(
     if save_path:
         plt.savefig(save_path, dpi=150, bbox_inches='tight')
     plt.show()
+
+
+def plot_projection_overlay(
+    centralized_projection: np.ndarray,
+    distributed_projection: np.ndarray,
+    labels: np.ndarray,
+    method_name: str = "Distributed",
+    angle: Optional[float] = None,
+    title: Optional[str] = None,
+    save_path: Optional[str] = None,
+    figsize: tuple = (10, 8),
+):
+    """Overlay scatter plot comparing centralized vs distributed PCA projections.
+
+    Creates a scatter plot showing data points projected by both centralized
+    (ground truth) and distributed PCA methods, allowing visual comparison
+    of how well the distributed method approximates the true projection.
+
+    Args:
+        centralized_projection: (n_samples, 2) array - PC1 and PC2 from centralized PCA.
+        distributed_projection: (n_samples, 2) array - PC1 and PC2 from distributed PCA.
+        labels: (n_samples,) array - class labels for coloring points.
+        method_name: Name of the distributed method for legend.
+        angle: Optional subspace angle to display in title.
+        title: Custom plot title. If None, auto-generated.
+        save_path: If provided, save figure to this path.
+        figsize: Figure size as (width, height).
+    """
+    plt.figure(figsize=figsize)
+
+    # Get unique classes and create colormap
+    unique_labels = np.unique(labels)
+    n_classes = len(unique_labels)
+    colors = plt.cm.tab10(np.linspace(0, 1, min(n_classes, 10)))
+
+    # Plot each class
+    for i, label in enumerate(unique_labels):
+        mask = labels == label
+        color = colors[i % len(colors)]
+
+        # Centralized: filled circles
+        plt.scatter(
+            centralized_projection[mask, 0],
+            centralized_projection[mask, 1],
+            c=[color],
+            marker='o',
+            s=50,
+            alpha=0.6,
+            label=f'Centralized (Class {label})',
+            edgecolors='white',
+            linewidths=0.5,
+        )
+
+        # Distributed: X markers
+        plt.scatter(
+            distributed_projection[mask, 0],
+            distributed_projection[mask, 1],
+            c=[color],
+            marker='x',
+            s=50,
+            alpha=0.6,
+            label=f'{method_name} (Class {label})',
+            linewidths=1.5,
+        )
+
+    plt.xlabel('PC1')
+    plt.ylabel('PC2')
+
+    # Generate title
+    if title:
+        plt.title(title)
+    elif angle is not None:
+        plt.title(f'Centralized vs {method_name} (mean angle: {angle:.2f}°)')
+    else:
+        plt.title(f'Centralized vs {method_name}')
+
+    # Create simplified legend (just method markers, not all classes)
+    handles = [
+        plt.Line2D([0], [0], marker='o', color='gray', linestyle='', markersize=8,
+                   label='Centralized', markerfacecolor='gray', alpha=0.6),
+        plt.Line2D([0], [0], marker='x', color='gray', linestyle='', markersize=8,
+                   label=method_name, markerfacecolor='gray', alpha=0.6),
+    ]
+    plt.legend(handles=handles, loc='upper right')
+
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.show()
+
+
+def plot_multiple_methods_comparison(
+    data: np.ndarray,
+    labels: np.ndarray,
+    centralized_pca,
+    distributed_methods: Dict,
+    angles: Optional[Dict[str, float]] = None,
+    save_path: Optional[str] = None,
+    figsize: tuple = (15, 10),
+):
+    """Grid of scatter plots comparing centralized vs multiple distributed methods.
+
+    Creates a grid where each subplot shows the 2D projection comparison
+    between centralized PCA and one distributed method.
+
+    Args:
+        data: (n_samples, n_features) array - original data.
+        labels: (n_samples,) array - class labels for coloring.
+        centralized_pca: Fitted centralized PCA model with transform method.
+        distributed_methods: Dict[method_name, fitted_model] - distributed PCA models.
+        angles: Optional Dict[method_name, angle] - subspace angles to display.
+        save_path: If provided, save figure to this path.
+        figsize: Figure size as (width, height).
+    """
+    n_methods = len(distributed_methods)
+    n_cols = min(3, n_methods)
+    n_rows = (n_methods + n_cols - 1) // n_cols
+
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=figsize)
+    if n_methods == 1:
+        axes = np.array([axes])
+    axes = axes.flatten()
+
+    # Get centralized projection
+    centralized_proj = centralized_pca.transform(data)[:, :2]
+
+    # Get unique classes and colormap
+    unique_labels = np.unique(labels)
+    n_classes = len(unique_labels)
+    colors = plt.cm.tab10(np.linspace(0, 1, min(n_classes, 10)))
+
+    for idx, (method_name, model) in enumerate(distributed_methods.items()):
+        ax = axes[idx]
+
+        # Get distributed projection
+        distributed_proj = model.transform(data)[:, :2]
+
+        # Plot each class
+        for i, label in enumerate(unique_labels):
+            mask = labels == label
+            color = colors[i % len(colors)]
+
+            # Centralized: circles
+            ax.scatter(
+                centralized_proj[mask, 0],
+                centralized_proj[mask, 1],
+                c=[color],
+                marker='o',
+                s=30,
+                alpha=0.5,
+                edgecolors='white',
+                linewidths=0.3,
+            )
+
+            # Distributed: X markers
+            ax.scatter(
+                distributed_proj[mask, 0],
+                distributed_proj[mask, 1],
+                c=[color],
+                marker='x',
+                s=30,
+                alpha=0.5,
+                linewidths=1,
+            )
+
+        # Title with angle if available
+        if angles and method_name in angles:
+            ax.set_title(f'{method_name} (angle: {angles[method_name]:.2f}°)')
+        else:
+            ax.set_title(method_name)
+
+        ax.set_xlabel('PC1')
+        ax.set_ylabel('PC2')
+        ax.grid(True, alpha=0.3)
+
+    # Hide unused subplots
+    for idx in range(n_methods, len(axes)):
+        axes[idx].set_visible(False)
+
+    # Add overall legend
+    handles = [
+        plt.Line2D([0], [0], marker='o', color='gray', linestyle='', markersize=8,
+                   label='Centralized', markerfacecolor='gray', alpha=0.6),
+        plt.Line2D([0], [0], marker='x', color='gray', linestyle='', markersize=8,
+                   label='Distributed', markerfacecolor='gray', alpha=0.6),
+    ]
+    fig.legend(handles=handles, loc='upper center', ncol=2, bbox_to_anchor=(0.5, 0.02))
+
+    plt.suptitle('Centralized vs Distributed PCA Projections', fontsize=14, y=1.02)
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.show()
