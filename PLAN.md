@@ -77,7 +77,7 @@ distributed_pca_2/
 │   │   ├── variance.py              # Explained variance
 │   │   └── downstream.py            # Classification accuracy
 │   └── visualization/
-│       └── plots.py                  # Plotting utilities
+│       └── plots.py                  # Plotting utilities (incl. projection overlays)
 ├── experiments/
 │   ├── run_experiment.py            # Full experiment runner
 │   ├── demo_experiment.py           # Quick demo
@@ -86,7 +86,9 @@ distributed_pca_2/
 │   ├── test_adaptive_real.py        # Adaptive test on MNIST ★ NEW
 │   ├── test_streaming.py            # Streaming updates test
 │   ├── test_differential_privacy.py # DP-PCA test
-│   └── test_compression.py          # Compression test ★ NEW
+│   ├── test_compression.py          # Compression test
+│   ├── visualize_projections.py     # Synthetic data visualization ★ NEW
+│   └── visualize_real_data.py       # MNIST/CIFAR-10 visualization ★ NEW
 └── tests/
     └── test_algorithms.py           # Unit tests
 ```
@@ -443,6 +445,59 @@ print(pca.get_compression_report())
 
 ---
 
+## Visualization ★ NEW
+
+Added scatter plot visualizations to compare centralized PCA projections vs distributed PCA methods.
+
+### Plot Types
+
+1. **Overlay Plot**: Single scatter plot with circles (○) for centralized and X markers (×) for distributed
+2. **Grid Comparison**: Side-by-side comparison of all methods
+
+### How to Interpret
+
+| Symbol | Meaning |
+|--------|---------|
+| ○ (circles) | Centralized PCA projection (ground truth) |
+| × (X markers) | Distributed PCA projection |
+| Colors | Class labels (10 classes) |
+
+**Perfect overlap** between ○ and × indicates the distributed method matches centralized exactly.
+
+### Results on Real Datasets
+
+| Dataset | Partition | P-COV | AP-COV | AP-STACK |
+|---------|-----------|-------|--------|----------|
+| MNIST | IID | 0.01° | 0.02° | 13.03° |
+| MNIST | Non-IID | 0.01° | 0.69° | 15.01° |
+| CIFAR-10 | IID | 0.00° | 0.01° | 0.54° |
+| CIFAR-10 | Non-IID | 0.00° | 0.13° | 4.58° |
+
+### Class Labels
+
+- **MNIST**: Digits 0-9
+- **CIFAR-10**: airplane, automobile, bird, cat, deer, dog, frog, horse, ship, truck
+
+### Usage
+
+```bash
+# Synthetic data (quick demo)
+python experiments/visualize_projections.py
+
+# Real datasets (MNIST and CIFAR-10)
+python experiments/visualize_real_data.py
+```
+
+Plots are saved to `results/visualizations/` directory.
+
+### Key Observations
+
+- **P-COV**: Perfect overlap (circles and X markers coincide exactly)
+- **AP-COV**: Very slight deviation, barely visible even on non-IID data
+- **AP-STACK**: Visible deviation on MNIST, especially with non-IID partitions
+
+---
+
 ## Project Complete!
 
 All 5 phases have been implemented:
@@ -451,6 +506,7 @@ All 5 phases have been implemented:
 3. ✅ Additional Methods (AP-STACK, QR-PCA, AP-COV)
 4. ✅ Experiments (accuracy, non-IID robustness, scalability)
 5. ✅ Novel Contributions (adaptive, streaming, DP, compression)
+6. ✅ Visualization (projection scatter plots)
 
 ---
 
