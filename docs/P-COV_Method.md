@@ -419,23 +419,32 @@ projected = pca.transform(test_data)
 
 ## 10. References
 
-1. **Grammenos, A., et al.** (2020). "Federated Principal Component Analysis." *Advances in Neural Information Processing Systems (NeurIPS)*.
-   - Foundational work on federated PCA methods.
+### Primary Reference
 
-2. **Fan, J., Wang, D., Wang, K., & Zhu, Z.** (2019). "Distributed Estimation of Principal Eigenspaces." *Annals of Statistics*, 47(6), 3009-3031.
-   - Theoretical analysis of distributed PCA.
-   - DOI: 10.1214/18-AOS1713
-
-3. **Chen, Y., & Wainwright, M. J.** (2015). "Fast low-rank estimation by projected gradient descent: General statistical and algorithmic guarantees." *arXiv preprint arXiv:1509.03025*.
-
-4. **Balcan, M. F., et al.** (2014). "Distributed PCA and k-Means Clustering." *Proceedings of the NIPS Workshop on Distributed Machine Learning and Matrix Computations*.
-
-5. **Liang, Y., et al.** (2014). "Communication Efficient Distributed PCA." *Journal of Machine Learning Research*.
-
-6. **Li, Q., et al.** (2022). "Federated PCA on Grassmann Manifold for Anomaly Detection in IoT Networks." *IEEE INFOCOM 2022*.
-
-7. **Ge, J., et al.** (2023). "Federated PCA for Biomedical Applications." *PMC/NIH*.
+1. **Hartebrodt, A., & Röttger, R.** (2022). "Federated horizontally partitioned principal component analysis for biomedical applications." *Bioinformatics Advances*, 2(1), vbac026.
+   - DOI: 10.1093/bioadv/vbac026
    - URL: https://pmc.ncbi.nlm.nih.gov/articles/PMC9710634/
+   - This paper introduces the P-COV terminology and evaluates federated PCA algorithms (P-COV, AP-COV, AP-STACK, SUB-IT) for horizontally partitioned biomedical data.
+
+### Mathematical Foundation
+
+2. **Law of Total Covariance** (Classical Statistical Identity)
+   - Formula: Cov(X,Y) = E[Cov(X,Y|Z)] + Cov[E(X|Z), E(Y|Z)]
+   - Special case (Law of Total Variance): Var(X) = E[Var(X|Z)] + Var[E(X|Z)]
+   - This identity enables exact decomposition of the global covariance matrix from local statistics.
+   - Reference: https://statproofbook.github.io/P/cov-tot.html
+
+3. **Weisstein, E. W.** "Covariance." *MathWorld--A Wolfram Web Resource*.
+   - URL: https://mathworld.wolfram.com/Covariance.html
+   - Standard reference for covariance properties and decomposition formulas.
+
+### Note on Implementation
+
+The P-COV implementation in this project extends the basic covariance aggregation described in Hartebrodt & Röttger (2022) by explicitly including the **between-client mean correction term**:
+
+C_global = (1/N) Σₖ nₖ · [Cₖ + (μₖ - μ)(μₖ - μ)ᵀ]
+
+This correction, derived from the law of total covariance, ensures **mathematically exact** reconstruction of the global covariance matrix regardless of whether client data shares the same mean. Without this term, the method would only be exact for pre-centered data.
 
 ---
 
